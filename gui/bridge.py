@@ -88,7 +88,7 @@ class ScraperWorker(QThread):
 
 
 class DownloadWorker(QThread):
-    """Worker thread for downloading chapters."""
+    """Worker thread for downloading chapters with concurrent execution."""
     progress = pyqtSignal(int, int, str)  # current, total, status
     chapter_complete = pyqtSignal(str, bool)  # chapter title, success
     finished = pyqtSignal(int, int)  # successful, failed
@@ -104,7 +104,34 @@ class DownloadWorker(QThread):
     def cancel(self):
         self._is_cancelled = True
     
+    def _download_single_chapter(self, chapter, manga, manager):
+        """Download a single chapter and return (chapter, result)."""
+        if self._is_cancelled:
+            return (chapter, None)
+        
+        result = manager.download_chapter_images(
+            chapter=chapter,
+            manga_title=manga.safe_title,
+            progress=None,
+        )
+        
+        # Convert if needed
+        if result.success and result.path:
+            if self.config.output_format == "pdf":
+                convert_to_pdf(result.path, keep_images=self.config.keep_images)
+            elif self.config.output_format == "cbz":
+                convert_to_cbz(
+                    result.path,
+                    manga=manga,
+                    chapter=chapter,
+                    keep_images=self.config.keep_images,
+                )
+        
+        return (chapter, result)
+    
     def run(self):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
         try:
             # Reconstruct MangaInfo from dict
             chapters = [
@@ -137,36 +164,52 @@ class DownloadWorker(QThread):
             successful = 0
             failed = 0
             total = len(selected_chapters)
+            completed = 0
             
-            for i, chapter in enumerate(selected_chapters):
-                if self._is_cancelled:
-                    break
+            self.progress.emit(0, total, f"Starting download of {total} chapters...")
+            
+            # Use ThreadPoolExecutor for concurrent chapter downloads
+            with ThreadPoolExecutor(max_workers=self.config.max_chapter_workers) as executor:
+                futures = {}
                 
-                self.progress.emit(i + 1, total, f"Downloading {chapter.title}")
+                for chapter in selected_chapters:
+                    if self._is_cancelled:
+                        break
+                    future = executor.submit(
+                        self._download_single_chapter,
+                        chapter,
+                        manga,
+                        manager
+                    )
+                    futures[future] = chapter
                 
-                result = manager.download_chapter_images(
-                    chapter=chapter,
-                    manga_title=manga.safe_title,
-                    progress=None,
-                )
-                
-                if result.success:
-                    successful += 1
-                    self.chapter_complete.emit(chapter.title, True)
+                # Process completed downloads as they finish
+                for future in as_completed(futures):
+                    if self._is_cancelled:
+                        break
                     
-                    # Convert if needed
-                    if self.config.output_format == "pdf" and result.path:
-                        convert_to_pdf(result.path, keep_images=self.config.keep_images)
-                    elif self.config.output_format == "cbz" and result.path:
-                        convert_to_cbz(
-                            result.path,
-                            manga=manga,
-                            chapter=chapter,
-                            keep_images=self.config.keep_images,
+                    chapter = futures[future]
+                    try:
+                        ch, result = future.result()
+                        completed += 1
+                        
+                        if result and result.success:
+                            successful += 1
+                            self.chapter_complete.emit(chapter.title, True)
+                        else:
+                            failed += 1
+                            self.chapter_complete.emit(chapter.title, False)
+                        
+                        self.progress.emit(
+                            completed, 
+                            total, 
+                            f"Downloaded {chapter.title} ({completed}/{total})"
                         )
-                else:
-                    failed += 1
-                    self.chapter_complete.emit(chapter.title, False)
+                        
+                    except Exception as e:
+                        completed += 1
+                        failed += 1
+                        self.chapter_complete.emit(chapter.title, False)
             
             self.finished.emit(successful, failed)
             
