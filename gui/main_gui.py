@@ -10,6 +10,10 @@ from pathlib import Path
 # Force Basic style to avoid Windows DLL issues
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Basic"
 
+# Use software rendering to avoid GPU driver issues on some systems
+# This fixes "COM error 0x887a0005: Device removed" errors
+os.environ["QSG_RHI_BACKEND"] = "sw"
+
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtQml import QQmlApplicationEngine
 from PyQt6.QtCore import QUrl
