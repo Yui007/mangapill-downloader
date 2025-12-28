@@ -9,10 +9,10 @@ Switch {
     id: root
     
     property color activeColor: Theme.accentPrimary
-    property color inactiveColor: Theme.textMuted
+    property color inactiveColor: "#4A4A5A"  // Brighter gray for visibility
     
-    implicitWidth: 52
-    implicitHeight: 28
+    implicitWidth: 56
+    implicitHeight: 30
     
     indicator: Rectangle {
         id: track
@@ -20,10 +20,14 @@ Switch {
         height: root.implicitHeight
         radius: height / 2
         color: root.checked ? root.activeColor : root.inactiveColor
-        border.color: root.checked ? Qt.lighter(root.activeColor, 1.2) : Theme.borderLight
-        border.width: 1
+        border.color: root.checked ? Qt.lighter(root.activeColor, 1.2) : "#6B6B8D"
+        border.width: 2
         
         Behavior on color {
+            ColorAnimation { duration: Theme.animNormal }
+        }
+        
+        Behavior on border.color {
             ColorAnimation { duration: Theme.animNormal }
         }
         

@@ -62,7 +62,7 @@ Item {
         
         GlassCard {
             Layout.fillWidth: true
-            Layout.preferredHeight: 180
+            Layout.preferredHeight: 230
             hoverable: false
             
             ColumnLayout {
@@ -122,10 +122,12 @@ Item {
                 // Default Format & Keep Images
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.spacingXL
+                    spacing: Theme.spacingXXL
                     
+                    // Default Format section
                     ColumnLayout {
-                        spacing: Theme.spacingXS
+                        Layout.alignment: Qt.AlignTop
+                        spacing: Theme.spacingS
                         
                         Text {
                             text: "Default Format"
@@ -140,16 +142,17 @@ Item {
                                 model: ["images", "pdf", "cbz"]
                                 
                                 Rectangle {
-                                    width: 70
-                                    height: 32
+                                    width: 75
+                                    height: 36
                                     radius: Theme.radiusS
                                     color: bridge.outputFormat === modelData ? Theme.accentPrimary : Theme.bgCard
-                                    border.color: Theme.borderLight
+                                    border.color: bridge.outputFormat === modelData ? Theme.accentPrimary : Theme.borderLight
+                                    border.width: 1
                                     
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.toUpperCase()
-                                        font.pixelSize: Theme.fontSizeSmall
+                                        font.pixelSize: Theme.fontSizeMedium
                                         font.bold: true
                                         color: bridge.outputFormat === modelData ? Theme.bgPrimary : Theme.textPrimary
                                     }
@@ -159,13 +162,20 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: bridge.outputFormat = modelData
                                     }
+                                    
+                                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
                                 }
                             }
                         }
                     }
                     
+                    // Spacer
+                    Item { Layout.fillWidth: true }
+                    
+                    // Keep Images section
                     ColumnLayout {
-                        spacing: Theme.spacingXS
+                        Layout.alignment: Qt.AlignTop
+                        spacing: Theme.spacingS
                         
                         Text {
                             text: "Keep Images After Convert"
