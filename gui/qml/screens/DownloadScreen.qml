@@ -205,52 +205,134 @@ Item {
         
         GlassCard {
             Layout.fillWidth: true
-            Layout.preferredHeight: 100
+            Layout.preferredHeight: 140
             hoverable: false
-            visible: !root.isDownloading && root.completedChapters > 0
+            visible: !root.isDownloading && (root.completedChapters > 0 || root.failedChapters > 0)
+            
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.1) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
             
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: Theme.spacingL
                 spacing: Theme.spacingXL
                 
-                ColumnLayout {
-                    spacing: Theme.spacingXS
+                // Celebration icon
+                Text {
+                    text: root.failedChapters === 0 ? "🎉" : "📊"
+                    font.pixelSize: 48
                     
-                    Text {
-                        text: "✅ Successful"
-                        font.pixelSize: Theme.fontSizeMedium
-                        color: Theme.success
-                    }
-                    Text {
-                        text: root.completedChapters.toString()
-                        font.pixelSize: Theme.fontSizeTitle
-                        font.bold: true
-                        color: Theme.textPrimary
+                    SequentialAnimation on scale {
+                        running: root.failedChapters === 0
+                        loops: 3
+                        NumberAnimation { to: 1.2; duration: 200; easing.type: Easing.OutQuad }
+                        NumberAnimation { to: 1.0; duration: 200; easing.type: Easing.InQuad }
                     }
                 }
                 
+                // Status text
                 ColumnLayout {
-                    spacing: Theme.spacingXS
-                    visible: root.failedChapters > 0
+                    spacing: 4
+                    Layout.fillWidth: true
                     
                     Text {
-                        text: "❌ Failed"
-                        font.pixelSize: Theme.fontSizeMedium
-                        color: Theme.error
-                    }
-                    Text {
-                        text: root.failedChapters.toString()
-                        font.pixelSize: Theme.fontSizeTitle
+                        text: root.failedChapters === 0 ? "Download Complete!" : "Download Finished"
+                        font.pixelSize: Theme.fontSizeXLarge
                         font.bold: true
-                        color: Theme.textPrimary
+                        color: root.failedChapters === 0 ? Theme.success : Theme.warning
+                    }
+                    
+                    Text {
+                        text: {
+                            var msg = root.completedChapters + " chapter" + (root.completedChapters !== 1 ? "s" : "") + " downloaded successfully"
+                            if (root.failedChapters > 0) {
+                                msg += ", " + root.failedChapters + " failed"
+                            }
+                            return msg
+                        }
+                        font.pixelSize: Theme.fontSizeMedium
+                        color: Theme.textSecondary
                     }
                 }
                 
-                Item { Layout.fillWidth: true }
+                // Stats boxes
+                Row {
+                    spacing: Theme.spacingM
+                    
+                    // Success stat
+                    Rectangle {
+                        width: 80
+                        height: 70
+                        radius: Theme.radiusM
+                        color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.2)
+                        border.color: Theme.success
+                        border.width: 2
+                        
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 2
+                            
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.completedChapters.toString()
+                                font.pixelSize: 28
+                                font.bold: true
+                                color: Theme.success
+                            }
+                            
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "SUCCESS"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: Theme.success
+                            }
+                        }
+                    }
+                    
+                    // Failed stat (only if there are failures)
+                    Rectangle {
+                        width: 80
+                        height: 70
+                        radius: Theme.radiusM
+                        color: Qt.rgba(Theme.error.r, Theme.error.g, Theme.error.b, 0.2)
+                        border.color: Theme.error
+                        border.width: 2
+                        visible: root.failedChapters > 0
+                        
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 2
+                            
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.failedChapters.toString()
+                                font.pixelSize: 28
+                                font.bold: true
+                                color: Theme.error
+                            }
+                            
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "FAILED"
+                                font.pixelSize: 10
+                                font.bold: true
+                                color: Theme.error
+                            }
+                        }
+                    }
+                }
                 
+                // Download More button
                 NeonButton {
                     text: "📥 Download More"
+                    accentColor: Theme.accentPrimary
                     onClicked: root.finished()
                 }
             }
